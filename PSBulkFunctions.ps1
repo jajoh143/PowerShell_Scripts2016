@@ -5,23 +5,14 @@
 #Creates an area where Details of AD Accounts can be stored
 $results = @()
 
-Function CreateAccount()
+Function CreateAccount($csv, $path, $Descr, $exp, $expPath)
 {
+    $csvinfo = Import-Csv $csv
     #Creates an area where Details of AD Accounts can be stored
     $results = @()
-    
-    Write-Host "Please provide the name of the Csv which is being pulled from "
-    $csv = Read-Host -Prompt "Csv: "
-    Write-Host "What description should be assocaited with these accounts?"
-    $Descr = Read-Host -Prompt "Description for accounts: "
-    Write-Host "What is the Path (Designated OU for assocaites)?"
-    $path = Read-Host "Path: "
-    Write-Host "When should these accounts be set to expire? (Enter in format dd/mm/yy)"
-    $exp = Read-Host "Date: "
-
 
     #Runs a ForEach Loop on each row of the Csv, format of names must match declared values
-    ForEach($user in $csv)
+    ForEach($user in $csvinfo)
     {
         #Declares all variables for use in account creation
         $FName = $user.FName
@@ -40,8 +31,8 @@ Function CreateAccount()
         $Descript = $Descr
         $Path = $path
         Write-Host "The path to the OU containing this assocaite is: $Path"
-        $Phone = $user.phone
-        $primGrp = Get-ADGroup "XXXXXXXXX"
+        $Phone = $usGivener.Phone
+        $primGrp = Get-ADGroup "PrimGrp"
         Write-Host "The primary Group for $userID is $primGrp"
 
         #Checks to see if the user already exists. If not, it runs. 
@@ -59,7 +50,7 @@ Function CreateAccount()
             -Path $Path `
             -GivenName $FName `
             -Surname $LName `
-            -SamAccoutName $userID `
+            -SamAccountName $userID `
             -EmailAddress $Email `
             -AccountPassword(ConvertTo-SecureString $Pass1 -AsPlainText -Force) `
             -ChangePasswordAtLogon $false `
@@ -77,23 +68,6 @@ Function CreateAccount()
                 }
 
         }
-        Elseif (-not($userID.MemberOf -match $primGrp))
-        {
-            #Adds User to the Primary Group
-            Add-ADPrincipalGroupMembership -Identity $userID -MemberOf $primGrp
-            $PrimSID = $primGrp.sid
-            Write-Host "The Prim SID is $PrimSID"
-            [int]$GroupID = $PrimSID.Value.Substring($PrimSID.Value.LastIndexOf("-")+1)
-            Get-ADUser $userID | Set-ADObject -Replace @{primaryGroupID="$GroupID"}
-            Remove-ADGroupMember -Identity "XXXXXXXXXX" -Members $userID -Confirm:$False
-
-            #Place account details in an array
-            $details = @{
-                    Name = $DispName
-                    Username = $userID
-                    Email = $Email
-                }
-        }
         Else
         {
             Write-Host "$DispName already exists and has $primGrp set as their primary group."
@@ -107,7 +81,7 @@ Function CreateAccount()
     }
 
     #Pushes the PowerShell object results to a new spreadsheet
-    $results | Export-Csv -Path "" -NoTypeInformation  
+    $results | Export-Csv -Path $expPath -NoTypeInformation  
 }
 
 #Function for generating the random password for user
@@ -194,4 +168,9 @@ Function cPrim()
     }
     #Pushes the PowerShell object results to a new spreadsheet
     $results | Export-Csv -Path "" -NoTypeInformation  
+}
+
+Function Testfun()
+{
+    Write-Host "Eureka!"
 }
